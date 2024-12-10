@@ -63,6 +63,9 @@
 3. 응답 기반 목표 설정 ➡️ **GOAP 계획 실행**:
    - NPC 동작 및 상태 변화 제어.
 
+---
+
+## 실제 코드 일부
 ```csharp
 [CafeUIManager.cs]
 - 입력이 들어오면 SendMessage_F 함수를 통해 GameManager의 서버 통신 함수를 호출
