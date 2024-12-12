@@ -41,7 +41,7 @@ public class GOAPManager : MonoBehaviour
     private List<string> gestureNames = new List<string>
     {
         "Bashful",
-        "Happy Gesture",
+        "Happy",
         "Crying",
         "Thinking",
         "Talking",
@@ -92,8 +92,9 @@ public class GOAPManager : MonoBehaviour
         GameObject tvGO = GameObject.Find("TV");
         GameObject mejaGO = GameObject.Find("Meja");
         GameObject sofaGO = GameObject.Find("Sofa");
+        GameObject playerGO = GameObject.Find("Player");
 
-        if (pianoGO == null || pictureGO == null || tvGO == null || mejaGO == null || sofaGO == null)
+        if (pianoGO == null || pictureGO == null || tvGO == null || mejaGO == null || sofaGO == null || playerGO == null)
         {
             Debug.LogError("GOAPExample: One or more Place GameObjects not found in the scene. Please ensure they are named correctly.");
             return;
@@ -105,6 +106,7 @@ public class GOAPManager : MonoBehaviour
         Place tv = new Place("tv", tvGO, new List<string>(), new Dictionary<string, object> { { "tv_state", "off" } });
         Place meja = new Place("meja", mejaGO, new List<string> { "lance", "snack" }, new Dictionary<string, object>());
         Place sofa = new Place("sofa", sofaGO, new List<string> { "pillow" }, new Dictionary<string, object>());
+        Place player = new Place("player", playerGO, new List<string>(), new Dictionary<string, object>());
 
         // Add to Places dictionary
         Places.Add("piano", piano);
@@ -112,13 +114,15 @@ public class GOAPManager : MonoBehaviour
         Places.Add("tv", tv);
         Places.Add("meja", meja);
         Places.Add("sofa", sofa);
+        Places.Add("player", player);
 
         // Define place connections
-        placeConnections.Add("piano", new List<string> { "picture", "tv", "meja", "sofa" });
-        placeConnections.Add("picture", new List<string> { "piano", "tv", "meja", "sofa" });
-        placeConnections.Add("tv", new List<string> { "piano", "picture", "meja", "sofa" });
-        placeConnections.Add("meja", new List<string> { "picture", "tv", "piano", "sofa" });
-        placeConnections.Add("sofa", new List<string> { "picture", "tv", "meja", "piano" });
+        placeConnections.Add("piano", new List<string> { "picture", "tv", "meja", "sofa", "player" });
+        placeConnections.Add("picture", new List<string> { "piano", "tv", "meja", "sofa", "player" });
+        placeConnections.Add("tv", new List<string> { "piano", "picture", "meja", "sofa", "player" });
+        placeConnections.Add("meja", new List<string> { "picture", "tv", "piano", "sofa", "player" });
+        placeConnections.Add("sofa", new List<string> { "picture", "tv", "meja", "piano", "player" });
+        placeConnections.Add("player", new List<string> { "piano", "picture", "tv", "meja", "sofa" });
 
         Debug.Log("GOAPExample: Places initialized successfully.");
     }
@@ -870,11 +874,5 @@ public class GOAPManager : MonoBehaviour
         {
             Debug.LogError($"GOAPExample: Place '{placeName}'을 찾을 수 없습니다.");
         }
-    }
-
-    // Ensure CharacterControl is assigned
-    void OnValidate()
-    {
-
     }
 }
