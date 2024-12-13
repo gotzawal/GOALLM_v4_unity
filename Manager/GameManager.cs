@@ -10,28 +10,38 @@ using UnityEngine.UI;
 public class GameManager : MonoBehaviour
 {
     public static GameManager instance;
+
     public InputField userInputField; // Assign via Inspector
+    public Text tokenCountText; // Text element to display token count
     public GOAPManager goapManager;
     public RhythmManager rhythmManager;
 
-    // 서버 URL
-    private string serverUrl = "https://e157-35-197-71-62.ngrok-free.app"; // 실제 서버 URL로 변경하세요
-    private bool isServerUrlSet = true; // 서버 URL 입력을 건너뛰려면 true로 설정
+    // Server communication variables
+    private string serverUrl;
+    private bool isServerUrlSet = false;
+    private string apiKey;
+    private bool isApiKeySet = false;
 
     private string clientId; // client_id 저장
+
+    // Input stages
+    private enum InputStage { ServerURL, APIKey, Chat }
+    private InputStage currentStage = InputStage.ServerURL;
 
     [System.Serializable]
     public class ServerRequest
     {
         public string client_id;
+        public string api_key; // Include API Key in request
         public NPCStatus npc_status;
         public string userInput;
         public WorldStatus world_status; // WorldStatus 필드 추가
         public string npc_mode; // Mode field
 
-        public ServerRequest(string clientId, NPCStatus status, string input, WorldStatus worldStatus, string mode)
+        public ServerRequest(string clientId, string apiKey, NPCStatus status, string input, WorldStatus worldStatus, string mode)
         {
             this.client_id = clientId;
+            this.api_key = apiKey;
             this.npc_status = status;
             this.userInput = input;
             this.world_status = worldStatus;
@@ -56,6 +66,7 @@ public class GameManager : MonoBehaviour
         public float Likeability; // Unity에서의 Friendship
         public float Mental;      // Unity에서의 Health
         public Dictionary<string, string> Quests; // Quest[]에서 Dictionary로 변경
+        public int remaining_tokens; // New field for remaining tokens
     }
 
     [System.Serializable]
@@ -121,6 +132,12 @@ public class GameManager : MonoBehaviour
         {
             Debug.Log("GameManager: AudioManager instance is found.");
         }
+
+        // Set initial placeholder text
+        if (userInputField != null)
+        {
+            userInputField.placeholder.GetComponent<Text>().text = "Enter Server URL";
+        }
     }
 
     private void OnDestroy()
@@ -138,21 +155,67 @@ public class GameManager : MonoBehaviour
     /// <param name="input">The input text submitted by the user.</param>
     public void OnInputFieldSubmit(string input)
     {
-        // Check if the user pressed Enter
-        if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+        // Prevent processing if the input is empty or the user is still editing
+        if (string.IsNullOrWhiteSpace(input) || !Input.GetKeyDown(KeyCode.Return) && !Input.GetKeyDown(KeyCode.KeypadEnter))
         {
-            Debug.Log("GameManager: Enter key pressed. Processing user input.");
-            ProcessUserInput(input);
+            return;
         }
+
+        switch (currentStage)
+        {
+            case InputStage.ServerURL:
+                ProcessServerURL(input);
+                break;
+            case InputStage.APIKey:
+                ProcessAPIKey(input);
+                break;
+            case InputStage.Chat:
+                ProcessChatMessage(input);
+                break;
+        }
+
+        // Clear the input field
+        userInputField.text = "";
+        userInputField.ActivateInputField(); // Keep the InputField focused
     }
 
     /// <summary>
-    /// Processes the user's input: updates the UI and communicates with the server.
+    /// Processes the server URL input.
+    /// </summary>
+    /// <param name="input">The server URL input by the user.</param>
+    private void ProcessServerURL(string input)
+    {
+        serverUrl = input.TrimEnd('/');
+        isServerUrlSet = true;
+        currentStage = InputStage.APIKey;
+        Debug.Log("GameManager: Server URL set to " + serverUrl);
+
+        // Update placeholder text for API Key
+        userInputField.placeholder.GetComponent<Text>().text = "Enter API Key";
+    }
+
+    /// <summary>
+    /// Processes the API key input.
+    /// </summary>
+    /// <param name="input">The API key input by the user.</param>
+    private void ProcessAPIKey(string input)
+    {
+        apiKey = input.Trim();
+        isApiKeySet = true;
+        currentStage = InputStage.Chat;
+        Debug.Log("GameManager: API Key set.");
+
+        // Update placeholder text for Chat
+        userInputField.placeholder.GetComponent<Text>().text = "Enter your message...";
+    }
+
+    /// <summary>
+    /// Processes the user's chat message: updates the UI and communicates with the server.
     /// </summary>
     /// <param name="userInput">The input text from the user.</param>
-    private void ProcessUserInput(string userInput)
+    private void ProcessChatMessage(string userInput)
     {
-        if (isServerUrlSet)
+        if (isServerUrlSet && isApiKeySet)
         {
             if (!string.IsNullOrWhiteSpace(userInput))
             {
@@ -174,11 +237,6 @@ public class GameManager : MonoBehaviour
                     StartCoroutine(CommunicateWithServer(userInput));
                 }
 
-                // Clear the input field
-                userInputField.text = "";
-                userInputField.ActivateInputField(); // Keep the InputField focused
-                Debug.Log("GameManager: Input field cleared and focused.");
-
                 // Reset inactivity timer in RhythmManager to maintain talk mode
                 rhythmManager.ResetToTalkMode();
                 Debug.Log("GameManager: Reset inactivity timer in RhythmManager.");
@@ -186,9 +244,15 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            serverUrl = userInput.TrimEnd('/');
-            isServerUrlSet = true;
-            Debug.Log("GameManager: Server URL set to " + serverUrl);
+            Debug.LogWarning("GameManager: Server URL or API Key is not set.");
+            if (!isServerUrlSet)
+            {
+                Debug.LogWarning("GameManager: Please set the Server URL.");
+            }
+            if (string.IsNullOrEmpty(apiKey))
+            {
+                Debug.LogWarning("GameManager: Please set the API Key.");
+            }
         }
     }
 
@@ -226,7 +290,7 @@ public class GameManager : MonoBehaviour
         WorldStatus currentWorldStatus = goapManager.CurrentWorldStatus;
 
         // 서버 요청 객체 생성 (월드 상태 포함)
-        ServerRequest request = new ServerRequest(clientId, goapManager.CurrentNPCStatus, userInput, currentWorldStatus, rhythmManager.CurrentMode);
+        ServerRequest request = new ServerRequest(clientId, apiKey, goapManager.CurrentNPCStatus, userInput, currentWorldStatus, rhythmManager.CurrentMode);
 
         Debug.Log("GameManager: Serialized ServerRequest: " + JsonConvert.SerializeObject(request));
 
@@ -289,16 +353,6 @@ public class GameManager : MonoBehaviour
                         Debug.LogWarning("GameManager: CafeUIManager.instance is not set.");
                     }
 
-                    // Pass the response to RhythmManager
-                    if (rhythmManager != null)
-                    {
-                        rhythmManager.HandleServerResponse(response);
-                        Debug.Log("GameManager: Passed server response to RhythmManager.");
-                    }
-                    else
-                    {
-                        Debug.LogError("GameManager: RhythmManager reference is not set.");
-                    }
 
                     // Friendship과 Health UI 업데이트
                     if (CafeUIManager.instance != null)
@@ -328,11 +382,35 @@ public class GameManager : MonoBehaviour
                         {
                             Debug.Log("GameManager: No quests received from server.");
                         }
+
+                        // Update remaining tokens
+                        if (response.remaining_tokens >= 0)
+                        {
+                            SetTokenCount(response.remaining_tokens);
+                            Debug.Log("GameManager: Updated token count to " + response.remaining_tokens);
+                        }
+                        else
+                        {
+                            Debug.LogWarning("GameManager: Invalid remaining_tokens value received.");
+                        }
                     }
                     else
                     {
                         Debug.LogWarning("GameManager: CafeUIManager.instance is not set.");
                     }
+
+
+                    // Pass the response to RhythmManager
+                    if (rhythmManager != null)
+                    {
+                        rhythmManager.HandleServerResponse(response);
+                        Debug.Log("GameManager: Passed server response to RhythmManager.");
+                    }
+                    else
+                    {
+                        Debug.LogError("GameManager: RhythmManager reference is not set.");
+                    }
+
 
                     // 오디오 데이터 처리 using AudioManager
                     if (!string.IsNullOrEmpty(response.audio_file))
@@ -359,6 +437,23 @@ public class GameManager : MonoBehaviour
                 rhythmManager.IsCommunicatingWithServer = false;
                 Debug.Log("GameManager: Communication with server has ended.");
             }
+        }
+    }
+
+    /// <summary>
+    /// Updates the token count UI element.
+    /// </summary>
+    /// <param name="value">The remaining token count.</param>
+    public void SetTokenCount(int value)
+    {
+        if (tokenCountText != null)
+        {
+            tokenCountText.text = "Tokens: " + value.ToString();
+            Debug.Log("GameManager: Token count updated to " + value);
+        }
+        else
+        {
+            Debug.LogError("GameManager: tokenCountText is not assigned.");
         }
     }
 }
