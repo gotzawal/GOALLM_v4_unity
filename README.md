@@ -6,31 +6,79 @@
 파라미터와 상태로 이루어진다.
 
 
-## NPC Rhythm 시스템 (RhythmManager.cs)
+### NPC Rhythm 시스템 (RhythmManager.cs)
 Player와 NPC간의 대화가 진행중인지 여부에 따라 **대화모드**와 **자율모드**를 나눔.
 
 **대화모드**시 NPC와 대화할 수 있음
-- Player가 NPC에게 인사하거나, 다가가면 **대화모드**로 전환됨.
-- 말을 하면 NPC는 그에 대한 '대답 한 문장' + 확률적으로 생성되는 '스토리 진행 한 문장' 함. 
-- NPC는 '스토리 진행 문장' 생성시 **대화모드**를 유지할지/종료할지 자발적 선택
-- NPC가 생성하는 '문장'이 재생되기 전에 Player가 새로운 입력을 보내면, 준비중인 '문장'은 버림.
+- Player가 NPC에게 말하거나, 다가가면 **대화모드**로 전환됨. (다가가면 player의 대사 없이 서버로 전송됨)
+- 서버에서 NPC는 그에 대한 '대답 한 문장' + 확률적으로 생성되는 '스토리 진행 한 문장' 반환함. 
+- 서버에서 NPC는 '스토리 진행 문장' 생성시 **대화모드**를 유지할지/종료할지 자발적 선택
+- NPC가 생성하는 '문장'이 재생되기 전에 Player가 새로운 입력을 보내면, 준비중인 '문장'은 버림. 
 
 **자율모드**시 NPC와 대화가 불가능하고, NPC는 자율적으로 행동함.
 - Player가 NPC로부터 멀어지거나, 대답을 10초 이상 안할시 **자율모드**로 전환
-- **자율모드**에서는 NPC는 접촉을 유지할지/종료할지 자발적 선택
+- **자율모드**에서는 NPC는 접촉을 유지할지/종료할지 5~10초마다 자발적 선택
 - NPC가 자신에게 주어진 퀘스트를 클리어하는 방향으로 진행됨
 - 과거 대화기록을 바탕으로 회상하여 스스로 퀘스트를 만듦: 그냥 Generative Agent(나중에 개발)
 
 
 
-## Player Rhythm 시스템 (GameManager.cs)
+### Player Rhythm 시스템 (GameManager.cs)
 게임의 진행에 관련된 정보를 player, NPC, LLM server, UI끼리 동기화한다.
 - 퀘스트/호감도/멘탈의 상시 업데이트와 동기화
 - 유저 name, key, token, history를 동기화
 
 
-## (추후개발) NPC Micro-Rhythm 시스템 (MicroRhythmManager.cs)
+### (추후개발) NPC Micro-Rhythm 시스템 (MicroRhythmManager.cs)
 미세한 행동/표정의 습관을 부여함.
+
+
+### NPC 리듬이 추가된 서버 입출력 형태
+[서버입력]
+clientid: '0234209'
+npcstatus:  {'Location': 'picture', 'Inventory': 'none', 'Pose': 'stand', 'Holding': 'none', 'Health': '100', 'Mental': '100'}
+worldstatus: {"Places":{"piano":{"Name":"piano","Inventory":[],"State":{}},"picture":{"Name":"picture","Inventory":[],"State":{}},"tv":{"Name":"tv","Inventory":[],"State":{"tv_state":"off"}},"meja":{"Name":"meja","Inventory":["lance","snack","Lance","Pillow","Snack"],"State":{}},"sofa":{"Name":"sofa","Inventory":["pillow"],"State":{}},"player":{"Name":"player","Inventory":[],"State":{}}},"Items":{"snack":{"Name":"snack"},"lance":{"Name":"lance"},"pillow":{"Name":"pillow"}}}
+npcmode: 'talkmode'
+userInput: 'hi, how are you?'
+
+[서버출력]
+Gesture: Bashful
+TalkGoal1: I'm fine. Welcome to cafe stella!
+TalkGoal2: Do you want to order something?
+Maintain: yes
+MoveGoal: sofa
+ItemGoal: none
+ActionGoal: none
+Likeability: 105
+Mental: 100
+Quests: {'Make First Conversation with Hoshikawa': 'Cleared'}
+Audio file
+
+
+### 기존 서버 입출력 형태
+[서버 입력]
+DEBUG:main:Received data: {'clientid': '', 'npcstatus': {'Location': 'picture', 'Inventory': 'none', 'Pose': 'stand', 'Holding': 'none', 'Health': '100', 'Mental': '100'}, 'userInput': 'hi, how are you?'}
+DEBUG:main:Generated new clientid: 2c6ec28f-0055-4bfc-b196-bd2b334ecf21
+DEBUG:main:Creating new session for client 2c6ec28f-0055-4bfc-b196-bd2b334ecf21
+DEBUG:_main:User Message: hi, how are you?
+DEBUG:main:NPC Status: {'Location': 'picture', 'Inventory': 'none', 'Pose': 'stand', 'Holding': 'none', 'Health': '100', 'Mental': '100'}
+
+
+[서버 출력]
+DEBUG:openai.baseclient:requestid: req1853123d0e6a31b116d64af77c02e2fa
+DEBUG:main:NPC Gesture: Bashful
+DEBUG:main:NPC Talk Goal: ようこそ、メイドカフェ「Stella」へ！私は星川です。ごゆっくりどうぞ！
+DEBUG:main:NPC Move Goal: sofa
+DEBUG:main:NPC Item Goal: none
+DEBUG:main:NPC Action Goal: none
+DEBUG:main:NPC Likeability: 105
+DEBUG:main:NPC Mental: 100
+DEBUG:main:NPC Quests: {'Make First Conversation with Hoshikawa': 'Cleared'}
+generating TTS
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): 47db-157-82-13-201.ngrok-free.app:443
+DEBUG:urllib3.connectionpool:https://XXXXXXXXXXXXXX.ngrok-free.app/ "POST /tts HTTP/11" 200 631852
+DEBUG:__main:Audio Binary: UklGRpB/AwBXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YWx/AwAAAPz//f/8//3//f8AAP7//P///wEAAAD///3///8B
+
 
 
 ## 기존 스크립트 구성
