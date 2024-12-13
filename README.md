@@ -146,7 +146,7 @@ Player와 NPC간의 대화가 진행중인지 여부에 따라 **대화모드**�
 
 ---
 
-## 실제 코드 일부
+## 기존 코드 일부
 ```csharp
 [CafeUIManager.cs]
 - 입력이 들어오면 SendMessage_F 함수를 통해 GameManager의 서버 통신 함수를 호출
