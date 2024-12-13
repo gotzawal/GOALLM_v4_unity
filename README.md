@@ -1,5 +1,5 @@
 # GOALLM_v4_unity
-
+Creative Commons NonCommercial (CC BY-NC) (비상업적 용도로 이용가능)
 
 ## Rhythm 시스템
 어떤 객체의 시간에 따른 상태변화를 총괄하고 동기화하는 시스템.
@@ -85,6 +85,8 @@ Player와 NPC간의 대화가 진행중인지 여부에 따라 **대화모드**�
 ![image](https://github.com/user-attachments/assets/64d81d2c-bf17-49be-9806-6623ec632dc1)
 
 ![image](https://github.com/user-attachments/assets/8a1a30b6-ec7f-4e98-82de-857bf7fc4ad6)
+
+![image](https://github.com/user-attachments/assets/fdc0f18e-8138-4c94-bb7e-5e4209db1f90)
 
 
 ## 기존 스크립트 구성
