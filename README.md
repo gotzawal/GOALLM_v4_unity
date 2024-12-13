@@ -81,6 +81,12 @@ Player와 NPC간의 대화가 진행중인지 여부에 따라 **대화모드**�
 
 
 
+## 유니티에서 할당 방법
+![image](https://github.com/user-attachments/assets/64d81d2c-bf17-49be-9806-6623ec632dc1)
+
+![image](https://github.com/user-attachments/assets/8a1a30b6-ec7f-4e98-82de-857bf7fc4ad6)
+
+
 ## 기존 스크립트 구성
 
 ---
