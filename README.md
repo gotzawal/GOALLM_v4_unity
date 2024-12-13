@@ -1,6 +1,12 @@
 # GOALLM_v4_unity
 
+
 ## Rhythm 시스템
+어떤 객체의 시간에 따른 상태변화를 총괄하고 동기화하는 시스템.
+파라미터와 상태로 이루어진다.
+
+
+## NPC Rhythm 시스템 (RhythmManager.cs)
 Player와 NPC간의 대화가 진행중인지 여부에 따라 **대화모드**와 **자율모드**를 나눔.
 
 **대화모드**시 NPC와 대화할 수 있음
@@ -16,6 +22,11 @@ Player와 NPC간의 대화가 진행중인지 여부에 따라 **대화모드**�
 - 과거 대화기록을 바탕으로 회상하여 스스로 퀘스트를 만듦: 그냥 Generative Agent(나중에 개발)
 
 
+
+## Game Rhythm 시스템 (GameManager.cs)
+게임의 진행에 관련된 정보를 player, NPC, LLM server, UI끼리 동기화한다.
+- 퀘스트/호감도/멘탈의 상시 업데이트와 동기화
+- 유저 name, key, token, history를 동기화
 
 
 
@@ -62,7 +73,7 @@ Player와 NPC간의 대화가 진행중인지 여부에 따라 **대화모드**�
    - `GoalParser.ParseSentenceToGoal`을 사용해 각 목표를 GOAP 형태로 파싱.
      - 예: `GoalParser.ParseSentenceToGoal($"Do {gesture}", actions, worldState, weight: 1f)`.
 
-2. **플래너 초기화**:
+2. **계획 생성**:
    - `GOAPPlanner` 객체 생성 및 계획 수립:
      - `planner.Plan(npcState, worldState)` 호출.
 
