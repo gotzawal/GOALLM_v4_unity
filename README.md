@@ -23,12 +23,14 @@ Player와 NPC간의 대화가 진행중인지 여부에 따라 **대화모드**�
 
 
 
-## Game Rhythm 시스템 (GameManager.cs)
+## Player Rhythm 시스템 (GameManager.cs)
 게임의 진행에 관련된 정보를 player, NPC, LLM server, UI끼리 동기화한다.
 - 퀘스트/호감도/멘탈의 상시 업데이트와 동기화
 - 유저 name, key, token, history를 동기화
 
 
+## (추후개발) NPC Micro-Rhythm 시스템 (MicroRhythmManager.cs)
+미세한 행동/표정의 습관을 부여함.
 
 
 ## 기존 스크립트 구성
