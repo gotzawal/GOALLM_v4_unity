@@ -34,14 +34,14 @@ Player와 NPC간의 대화가 진행중인지 여부에 따라 **대화모드**�
 
 
 ### NPC 리듬이 추가된 서버 입출력 형태
-[서버입력]
+#### 서버입력
 clientid: '0234209'
 npcstatus:  {'Location': 'picture', 'Inventory': 'none', 'Pose': 'stand', 'Holding': 'none', 'Health': '100', 'Mental': '100'}
 worldstatus: {"Places":{"piano":{"Name":"piano","Inventory":[],"State":{}},"picture":{"Name":"picture","Inventory":[],"State":{}},"tv":{"Name":"tv","Inventory":[],"State":{"tv_state":"off"}},"meja":{"Name":"meja","Inventory":["lance","snack","Lance","Pillow","Snack"],"State":{}},"sofa":{"Name":"sofa","Inventory":["pillow"],"State":{}},"player":{"Name":"player","Inventory":[],"State":{}}},"Items":{"snack":{"Name":"snack"},"lance":{"Name":"lance"},"pillow":{"Name":"pillow"}}}
 npcmode: 'talkmode'
 userInput: 'hi, how are you?'
 
-[서버출력]
+#### 서버출력
 Gesture: Bashful
 TalkGoal1: I'm fine. Welcome to cafe stella!
 TalkGoal2: Do you want to order something?
@@ -56,7 +56,7 @@ Audio file
 
 
 ### 기존 서버 입출력 형태
-[서버 입력]
+#### 서버 입력
 DEBUG:main:Received data: {'clientid': '', 'npcstatus': {'Location': 'picture', 'Inventory': 'none', 'Pose': 'stand', 'Holding': 'none', 'Health': '100', 'Mental': '100'}, 'userInput': 'hi, how are you?'}
 DEBUG:main:Generated new clientid: 2c6ec28f-0055-4bfc-b196-bd2b334ecf21
 DEBUG:main:Creating new session for client 2c6ec28f-0055-4bfc-b196-bd2b334ecf21
@@ -64,7 +64,7 @@ DEBUG:_main:User Message: hi, how are you?
 DEBUG:main:NPC Status: {'Location': 'picture', 'Inventory': 'none', 'Pose': 'stand', 'Holding': 'none', 'Health': '100', 'Mental': '100'}
 
 
-[서버 출력]
+#### 서버 출력
 DEBUG:openai.baseclient:requestid: req1853123d0e6a31b116d64af77c02e2fa
 DEBUG:main:NPC Gesture: Bashful
 DEBUG:main:NPC Talk Goal: ようこそ、メイドカフェ「Stella」へ！私は星川です。ごゆっくりどうぞ！
