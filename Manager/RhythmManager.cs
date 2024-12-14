@@ -189,7 +189,7 @@ public class RhythmManager : MonoBehaviour
         // Send empty input to server after switching to Autonomous Mode
         if (!IsCommunicatingWithServer && GameManager.instance != null)
         {
-            Debug.Log("RhythmManager: Sending empty input to server after switching to Autonomous Mode.");
+            Debug.Log("RhythmManager: Sending empty input to server during Autonomous Mode.");
             GameManager.instance.SendEmptyInput(); // This sends empty input
         }
         else
