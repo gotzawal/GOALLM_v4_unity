@@ -1,5 +1,9 @@
 # GOALLM_v4_unity
 
+![NPC_LLM_Rhythm_GOAP](https://github.com/user-attachments/assets/c91febf0-0d72-43ac-9fa0-ae3730554f0b)
+
+
+
 ## 주요 스크립트 구성
 
 ---
