@@ -156,12 +156,14 @@ public class RhythmManager : MonoBehaviour
             if (response.Maintain.ToLower() == "yes")
             {
                 Debug.Log("RhythmManager: Server maintain is 'yes'. Staying in Talk Mode.");
+                SwitchToTalkMode();
                 // Optionally, reset inactivity timer if needed
                 ResetInactivityTimer();
             }
             else
             {
                 Debug.Log("RhythmManager: Server maintain is 'no'. Scheduling switch to Autonomous Mode.");
+                SwitchToAutonomousMode();
                 StartCoroutine(AutonomousModeDelay(autonomousDecisionIntervalMin, autonomousDecisionIntervalMax));
             }
         }
