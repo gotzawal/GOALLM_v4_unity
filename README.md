@@ -1,5 +1,6 @@
 # GOALLM_v4_unity
 Creative Commons NonCommercial (CC BY-NC) (비상업적 용도로 이용가능)
+![NPC_LLM_Rhythm_GOAP](https://github.com/user-attachments/assets/6629e6a9-b19f-4c45-8b1f-daf4fbd8fd9b)
 
 ## Rhythm 시스템
 어떤 객체의 시간에 따른 상태변화를 총괄하고 동기화하는 시스템.
