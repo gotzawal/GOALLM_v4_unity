@@ -1,6 +1,7 @@
 # GOALLM_v4_unity
 Creative Commons NonCommercial (CC BY-NC) (비상업적 용도로 이용가능)
-![NPC_LLM_Rhythm_GOAP drawio](https://github.com/user-attachments/assets/4281797e-7d8f-44f3-9a58-c7f451cb2b14)
+![GOALLM_v4-Unity](https://github.com/user-attachments/assets/0f0f8c03-3a0c-4c8c-aafe-f5f1ac388b59)
+
 
 
 
