@@ -4,7 +4,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro; // TextMeshPro 사용을 위해 추가
 
-
 public class CafeUIManager : MonoBehaviour
 {
     public static CafeUIManager instance;
@@ -38,11 +37,9 @@ public class CafeUIManager : MonoBehaviour
 
     [SerializeField] private GameObject ChatView;
     [SerializeField] private Image ChatObject;
-    [SerializeField] private InputField InputField;
 
     [SerializeField] private Transform questListContainer; // 퀘스트 아이템을 담을 부모 오브젝트
     [SerializeField] private GameObject questItemPrefab; // QuestItemUI 프리팹
-
 
     private float opacityValue = 20f;
     public bool isFocused = false;
@@ -57,32 +54,30 @@ public class CafeUIManager : MonoBehaviour
     {
         AddAllButtonListeners();
 
-        // Add listener to the InputField to detect when editing ends
-        InputField.onEndEdit.AddListener(OnInputFieldEndEdit);
+        // InputField 관련 리스너는 GameManagerServerSet으로 이전되었으므로 제거
     }
 
     private void OnDestroy()
     {
-        // Remove listener to prevent memory leaks
-        InputField.onEndEdit.RemoveListener(OnInputFieldEndEdit);
+        // 버튼 리스너 제거
+        RemoveAllButtonListeners();
     }
 
     public void OpenChatUI()
     {
         if (!_chatUI.activeInHierarchy) _chatUI.SetActive(true);
-        InputField.interactable = true;
+        // InputField의 인터랙티브 상태는 GameManagerServerSet에서 관리
     }
 
     public void CloseChatUI()
     {
         if (_chatUI.activeInHierarchy) _chatUI.SetActive(false);
-        InputField.interactable = false;
+        // InputField의 인터랙티브 상태는 GameManagerServerSet에서 관리
     }
 
     public void ToggleMainPanel()
     {
-        if (_mainPanel.activeInHierarchy) _mainPanel.SetActive(false);
-        else _mainPanel.SetActive(true);
+        _mainPanel.SetActive(!_mainPanel.activeInHierarchy);
     }
 
     public void ToggleSideMenuPanel(bool pressed)
@@ -92,14 +87,12 @@ public class CafeUIManager : MonoBehaviour
 
     public void ToggleQuestPanel()
     {
-        if (_questPanel.activeInHierarchy) _questPanel.SetActive(false);
-        else _questPanel.SetActive(true);
+        _questPanel.SetActive(!_questPanel.activeInHierarchy);
     }
 
     public void ToggleInventoryPanel()
     {
-        if (_inventoryPanel.activeInHierarchy) _inventoryPanel.SetActive(false);
-        else _inventoryPanel.SetActive(true);
+        _inventoryPanel.SetActive(!_inventoryPanel.activeInHierarchy);
     }
 
     public void ExitGame()
@@ -133,111 +126,34 @@ public class CafeUIManager : MonoBehaviour
         ToggleSideMenuPanel(false);
     }
 
-    private void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.Return))
-        {
-            if (_chatUI.activeInHierarchy)
-            {
-                if (!InputField.isFocused)
-                {
-                    isFocused = true;
-                    InputField.ActivateInputField();
-                }
-                else
-                {
-                    isFocused = false;
-                    // Optionally unfocus the input field
-                    // InputField.DeactivateInputField();
-                }
-            }
-        }
-    }
-
-    private void OnInputFieldEndEdit(string text)
+    /// <summary>
+    /// 플레이어의 메시지를 챗 UI에 표시합니다.
+    /// GameManagerServerSet에서 호출됩니다.
+    /// </summary>
+    /// <param name="message">플레이어의 메시지</param>
+    public void DisplayPlayerMessage(string message)
     {
         try
         {
-            if (!string.IsNullOrWhiteSpace(text))
-            {
-                SendMessage_F(text);
-                isFocused = false;
-
-                // Reactivate the input field for continuous typing
-                InputField.ActivateInputField();
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug.LogError("Error in OnInputFieldEndEdit: " + ex.Message);
-        }
-    }
-
-    private Image Instantiate_ChatBox()
-    {
-        Image temp = Instantiate(ChatObject, ChatView.transform);
-        ChatBoxGroup.Add(temp);
-        ChatBgGroup.Add(temp.transform.GetChild(0).GetComponent<Image>());
-        ChatTextGroup.Add(temp.transform.GetChild(0).GetChild(0).GetComponent<Text>());
-
-        for (int i = 0; i < ChatBoxGroup.Count; i++)
-        {
-            float opacity = 100f;
-            opacity = opacity - (((ChatBoxGroup.Count - 2) - i) * opacityValue);
-            opacity /= 100;
-
-            Color c = ChatBgGroup[i].color;
-            c.a = opacity;
-            ChatBgGroup[i].color = c;
-
-            c = ChatTextGroup[i].color;
-            c.a = opacity;
-            ChatTextGroup[i].color = c;
-        }
-
-        return temp;
-    }
-
-    public enum ChatType
-    {
-        PLAYER,
-        MAID
-    }
-
-    public void SendMessage_F(string message)
-    {
-        try
-        {
-            Debug.Log("SendMessage_F called with message: " + message);
-
             if (string.IsNullOrWhiteSpace(message))
-                return; // Do not send empty messages
+                return; // 빈 메시지는 표시하지 않음
 
             ChatData.Add(ConstData.ChatType.PLAYER);
             Image temp = Instantiate_ChatBox();
-            temp.GetComponent<chatElement>().SetData(message, (ConstData.ChatType.PLAYER));
+            temp.GetComponent<chatElement>().SetData(message, ConstData.ChatType.PLAYER);
             temp.GetComponent<GridLayoutGroup>().childAlignment = TextAnchor.UpperRight;
-
-            // Pass the message to the GameManager to send to the server
-            if (GameManagerServerSet.instance != null)
-            {
-                GameManagerServerSet.instance.OnInputFieldSubmit(message);
-            }
-            else
-            {
-                Debug.LogError("GameManagerServerSet.instance is null.");
-            }
-
-            InputField.text = ""; // Clear input field
-            InputField.ActivateInputField(); // Keep the InputField focused
         }
         catch (Exception ex)
         {
-            Debug.LogError("Error in SendMessage_F: " + ex.Message);
+            Debug.LogError("Error in DisplayPlayerMessage: " + ex.Message);
         }
     }
 
-    public void ReceiveMessage(string data) // 'data' is the NPC's text
+    /// <summary>
+    /// 서버로부터 받은 NPC의 메시지를 챗 UI에 표시합니다.
+    /// </summary>
+    /// <param name="data">NPC의 메시지</param>
+    public void ReceiveMessage(string data)
     {
         try
         {
@@ -252,27 +168,39 @@ public class CafeUIManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 토큰 수를 설정하고 UI를 업데이트합니다.
+    /// </summary>
+    /// <param name="value">토큰 수</param>
     public void SetTokenCount(int value)
     {
         TokenSlider.value = value;
         txt_TokenText.text = "PHASE COUNT " + value.ToString() + "/  50";
     }
 
+    /// <summary>
+    /// 하트 슬라이더를 설정합니다.
+    /// </summary>
+    /// <param name="value">하트 값</param>
     public void SetHeartSlider(float value)
     {
-        HeartSlider.value = value/2;
+        HeartSlider.value = value / 2;
     }
 
+    /// <summary>
+    /// 우정 슬라이더를 설정합니다.
+    /// </summary>
+    /// <param name="value">우정 값</param>
     public void SetFriendShipSlider(float value)
     {
-        FriendShipSlider.value = value/2;
+        FriendShipSlider.value = value / 2;
     }
 
     /// <summary>
     /// 서버로부터 받은 퀘스트 배열을 UI에 표시합니다.
     /// </summary>
     /// <param name="quests">퀘스트 배열</param>
-    public void UpdateQuestDisplay(GameManagerServerSet.Quest[] quests)
+    public void UpdateQuestDisplay(GameManager.Quest[] quests)
     {
         if (questListContainer == null)
         {
@@ -308,5 +236,32 @@ public class CafeUIManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 챗 박스를 인스턴스화하고 불투명도를 조절합니다.
+    /// </summary>
+    /// <returns>인스턴스화된 챗 박스의 Image 컴포넌트</returns>
+    private Image Instantiate_ChatBox()
+    {
+        Image temp = Instantiate(ChatObject, ChatView.transform);
+        ChatBoxGroup.Add(temp);
+        ChatBgGroup.Add(temp.transform.GetChild(0).GetComponent<Image>());
+        ChatTextGroup.Add(temp.transform.GetChild(0).GetChild(0).GetComponent<Text>());
 
+        for (int i = 0; i < ChatBoxGroup.Count; i++)
+        {
+            float opacity = 100f;
+            opacity = opacity - (((ChatBoxGroup.Count - 2) - i) * opacityValue);
+            opacity /= 100;
+
+            Color c = ChatBgGroup[i].color;
+            c.a = opacity;
+            ChatBgGroup[i].color = c;
+
+            c = ChatTextGroup[i].color;
+            c.a = opacity;
+            ChatTextGroup[i].color = c;
+        }
+
+        return temp;
+    }
 }

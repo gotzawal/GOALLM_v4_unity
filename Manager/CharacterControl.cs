@@ -20,7 +20,7 @@ public class CharacterControl : MonoBehaviour
     private List<string> validGestures = new List<string>
     {
         "Bashful",
-        "Happy Gesture",
+        "Happy",
         "Crying",
         "Thinking",
         "Talking",
