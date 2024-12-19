@@ -11,21 +11,23 @@ Creative Commons NonCommercial (CC BY-NC) (비상업적 용도로 이용가능)
 
 
 ### NPC Rhythm 시스템 (RhythmManager.cs)
-Player와 NPC간의 대화가 진행중인지 여부에 따라 **대화모드**와 **자율모드**를 나눔.
+Player와 NPC간의 대화가 진행중인지 여부에 따라 **Talkmode**와 **automode**를 나눔.
 
-**대화모드**시 NPC와 대화할 수 있음
-- Player가 NPC에게 말하거나, 다가가면 **대화모드**로 전환됨. (다가가면 player의 대사 없이 서버로 전송됨)
+**talkmode**시 NPC와 대화할 수 있음
+- Player가 NPC에게 말하거나, 다가가면 talkmode로 전환됨. (다가가면 player의 대사 없이 서버로 전송됨)
 - 서버에서 NPC는 그에 대한 '대답 한 문장' + 확률적으로 생성되는 '스토리 진행 한 문장' 반환함. 
 - 서버에서 NPC는 '스토리 진행 문장' 생성시 **대화모드**를 유지할지/종료할지 자발적 선택
 - NPC가 생성하는 '문장'이 재생되기 전에 Player가 새로운 입력을 보내면, 준비중인 '문장'은 버림. 
 
-**자율모드**시 NPC와 대화가 불가능하고, NPC는 자율적으로 행동함.
-- Player가 NPC로부터 멀어지거나, 대답을 10초 이상 안할시 **자율모드**로 전환
-- **자율모드**에서는 NPC는 접촉을 유지할지/종료할지 5~10초마다 자발적 선택
+**automode**시 NPC와 대화가 불가능하고, NPC는 자율적으로 행동함.
+- Player가 NPC로부터 멀어지거나, 대답을 10초 이상 안할시 **Automode**로 전환
+- automode에서는 NPC는 10~15초마다 서버로 automode, input은 ""으로 전송
 - NPC가 자신에게 주어진 퀘스트를 클리어하는 방향으로 진행됨
 - 과거 대화기록을 바탕으로 회상하여 스스로 퀘스트를 만듦: 그냥 Generative Agent(나중에 개발)
 
-
+- maintain이 yes면 talkmode로 바꾸고, no면 automode로 바꿈.
+- 서버 응답이 오기 전까지는 새로 서버에 요청하지 않음
+- 
 
 ### Player Rhythm 시스템 (GameManager.cs)
 게임의 진행에 관련된 정보를 player, NPC, LLM server, UI끼리 동기화한다.
