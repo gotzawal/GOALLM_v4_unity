@@ -1,7 +1,5 @@
 using UnityEngine;
-using System;
 using System.Collections;
-using System.Collections.Generic;
 
 public class RhythmManager : MonoBehaviour
 {
@@ -10,20 +8,22 @@ public class RhythmManager : MonoBehaviour
     public Animator characterAnimator;
 
     [Header("Mode Settings")]
-    public string CurrentMode = "autonomousmode"; // Default mode
-    public float inactivityTimeout = 15f; // Time in seconds to switch to autonomous mode
-    public float autonomousDecisionIntervalMin = 10f; // Changed to 10 seconds
-    public float autonomousDecisionIntervalMax = 15f; // Changed to 15 seconds
+    public string CurrentMode = "automode"; // Default mode
+    public float inactivityTimeout = 25f;
+    public float autonomousDecisionIntervalMin = 10f;
+    public float autonomousDecisionIntervalMax = 15f;
 
     [HideInInspector]
     public bool IsCommunicatingWithServer = false;
 
+    // Coroutines
     private Coroutine inactivityCoroutine;
+    private Coroutine autonomousModeDelayCoroutine;
 
-    // 거리 판별을 위한 필드
-    public Transform playerTransform; // Assign via Inspector
-    public Transform npcTransform;    // Assign via Inspector
-    public float talkModeDistance = 1.5f; // 거리 임계값
+    // Distance Detection
+    public Transform playerTransform;
+    public Transform npcTransform;
+    public float talkModeDistance = 1.5f;
 
     private bool isInTalkModeByProximity = false;
 
@@ -31,43 +31,28 @@ public class RhythmManager : MonoBehaviour
     {
         if (instance != null)
         {
-            Debug.LogWarning("RhythmManager: Instance already exists. Destroying duplicate.");
+            Debug.LogWarning("RhythmManager: Duplicate instance found. Destroying...");
             Destroy(gameObject);
             return;
         }
         instance = this;
         DontDestroyOnLoad(gameObject);
-
-        Debug.Log("RhythmManager: Instance has been set.");
     }
 
     private void Start()
     {
-        // 초기 모드가 'autonomousmode'인 경우 추가 초기화가 필요 없다면 호출을 제거합니다.
-        // 현재 요구사항에 따라, 초기 모드 설정은 이미 Done 되었습니다.
-
-        // Validate player and NPC Transforms
         if (playerTransform == null)
-        {
             Debug.LogError("RhythmManager: Player Transform is not assigned.");
-        }
-        else
-        {
-            Debug.Log("RhythmManager: Player Transform is assigned.");
-        }
 
         if (npcTransform == null)
-        {
             Debug.LogError("RhythmManager: NPC Transform is not assigned.");
-        }
-        else
+
+        // 초기 상태가 automode라면 autonomous delay 시작
+        if (CurrentMode == "auto" || CurrentMode == "automode")
         {
-            Debug.Log("RhythmManager: NPC Transform is assigned.");
+            ResetAutonomousModeDelay();
         }
-
-        StartCoroutine(AutonomousModeDelay(autonomousDecisionIntervalMin, autonomousDecisionIntervalMax));
     }
-
 
     private void Update()
     {
@@ -75,7 +60,7 @@ public class RhythmManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Handles proximity detection between Player and NPC.
+    /// 플레이어와 NPC 사이 거리를 감지해서 Talk Mode 전환
     /// </summary>
     private void HandleProximityDetection()
     {
@@ -84,198 +69,204 @@ public class RhythmManager : MonoBehaviour
 
         float distance = Vector3.Distance(playerTransform.position, npcTransform.position);
 
+        // 플레이어가 NPC 근처에 접근 시
         if (distance <= talkModeDistance)
         {
-            if (!isInTalkModeByProximity && !IsCommunicatingWithServer && CurrentMode != "talkmode")
+            if (!isInTalkModeByProximity && !IsCommunicatingWithServer && CurrentMode == "automode")
             {
                 SwitchToTalkMode();
                 isInTalkModeByProximity = true;
-                Debug.Log("RhythmManager: Player is within talk mode distance. Triggering Talk Mode by proximity.");
                 TriggerTalkModeByProximity();
             }
         }
         else
         {
             if (isInTalkModeByProximity)
-            {
                 isInTalkModeByProximity = false;
-                Debug.Log("RhythmManager: Player moved out of talk mode distance.");
-            }
         }
     }
 
     /// <summary>
-    /// Triggers Talk Mode by proximity by informing GameManager.
+    /// 플레이어가 근접했을 때 Talk Mode를 트리거
     /// </summary>
     private void TriggerTalkModeByProximity()
     {
-        if (GameManager.instance != null)
+        if (GameManager.instance != null && !IsCommunicatingWithServer)
         {
-            Debug.Log("RhythmManager: Calling GameManager.TriggerTalkModeByProximity().");
-            GameManager.instance.SendEmptyInput();
-        }
-        else
-        {
-            Debug.LogError("RhythmManager: GameManager instance is not found.");
+            GameManager.instance.SendEmptyInput("Player get close to npc.");
+            IsCommunicatingWithServer = true;
+            ResetInactivityTimer();
+            // Talk mode로 전환 시 AutonomousModeDelay는 필요없으니 리셋(=정지)
+            ResetAutonomousModeDelay();
         }
     }
 
     /// <summary>
-    /// Handles the server response by updating NPC's state and mode.
+    /// 서버 응답 처리
     /// </summary>
-    /// <param name="response">The server response.</param>
     public void HandleServerResponse(GameManager.ServerResponse response)
     {
         if (response == null)
         {
-            Debug.LogError("RhythmManager: Received null response.");
+            IsCommunicatingWithServer = false;
             return;
         }
 
-        // Update NPC Expression
+        // NPC 표정 업데이트
         if (!string.IsNullOrEmpty(response.Expression))
-        {
             characterAnimator.SetTrigger(response.Expression);
-            Debug.Log("RhythmManager: Updated NPC Expression.");
-        }
 
-        // Update GOAP Goals
+        // GOAP 목표 업데이트
         if (goapManager != null)
-        {
             goapManager.SetGoals(response.Gesture, response.MoveGoal, response.ItemGoal, response.ActionGoal);
-            Debug.Log("RhythmManager: Updated GOAP Goals.");
-        }
-        else
-        {
-            Debug.LogError("RhythmManager: GOAPManager reference is not set.");
-        }
 
-        // Manage Mode based on server's 'Maintain' field
+        // 응답 유지 여부 확인
         if (!string.IsNullOrEmpty(response.Maintain))
         {
+            // Maintain이 "yes"면 Talk Mode 유지
             if (response.Maintain.ToLower() == "yes")
             {
-                Debug.Log("RhythmManager: Server maintain is 'yes'. Staying in Talk Mode.");
                 SwitchToTalkMode();
-                // Optionally, reset inactivity timer if needed
                 ResetInactivityTimer();
+                // Talk Mode이므로 autonomous delay를 리셋할 때 재시작하지 않음(실제로는 Stop기능)
+                ResetAutonomousModeDelay();
             }
             else
             {
-                Debug.Log("RhythmManager: Server maintain is 'no'. Scheduling switch to Autonomous Mode.");
+                // Maintain이 "no"면 Autonomous Mode 전환
                 SwitchToAutonomousMode();
-                StartCoroutine(AutonomousModeDelay(autonomousDecisionIntervalMin, autonomousDecisionIntervalMax));
+                ResetInactivityTimer();
+                // Autonomous Mode이므로 autonomous delay 리셋 후 다시 시작
+                ResetAutonomousModeDelay();
             }
         }
 
-        ResetInactivityTimer();
-
-
+        IsCommunicatingWithServer = false;
     }
 
     /// <summary>
-    /// Coroutine to switch to Autonomous Mode after a random delay between minDelay and maxDelay seconds.
+    /// AutonomousModeDelay 타이머를 정지하고, 현재 모드에 따라 재시작
+    /// CurrentMode가 automode일 때만 AutonomousModeDelay 재시작
+    /// talkmode일 때는 재시작하지 않고 그냥 정지 상태 유지.
     /// </summary>
-    /// <param name="minDelay">Minimum delay in seconds.</param>
-    /// <param name="maxDelay">Maximum delay in seconds.</param>
-    /// <returns></returns>
+    private void ResetAutonomousModeDelay()
+    {
+        StopAutonomousModeDelay();
+        if (CurrentMode == "automode")
+        {
+            autonomousModeDelayCoroutine = StartCoroutine(AutonomousModeDelay(autonomousDecisionIntervalMin, autonomousDecisionIntervalMax));
+        }
+    }
+
+    /// <summary>
+    /// AutonomousModeDelay 코루틴 중지 메서드
+    /// </summary>
+    private void StopAutonomousModeDelay()
+    {
+        if (autonomousModeDelayCoroutine != null)
+        {
+            StopCoroutine(autonomousModeDelayCoroutine);
+            autonomousModeDelayCoroutine = null;
+        }
+    }
+
+    /// <summary>
+    /// 일정 시간 후 Autonomous Mode 동작
+    /// </summary>
     IEnumerator AutonomousModeDelay(float minDelay, float maxDelay)
     {
         float waitTime = UnityEngine.Random.Range(minDelay, maxDelay);
-        Debug.Log($"RhythmManager: Waiting for {waitTime} seconds during Autonomous Mode.");
         yield return new WaitForSeconds(waitTime);
 
-
-        // Send empty input to server after switching to Autonomous Mode
-        if (!IsCommunicatingWithServer && GameManager.instance != null)
+        if (!IsCommunicatingWithServer && GameManager.instance != null && CurrentMode == "automode")
         {
-            Debug.Log("RhythmManager: Sending empty input to server during Autonomous Mode.");
-            GameManager.instance.SendEmptyInput(); // This sends empty input
-        }
-        else
-        {
-            Debug.LogWarning("RhythmManager: Cannot send empty input to server. Either already communicating or GameManager.instance is null.");
+            GameManager.instance.SendEmptyInput("NPC need next goal and consider talk to player.");
+            IsCommunicatingWithServer = true;
+            ResetInactivityTimer();
+            ResetAutonomousModeDelay();
         }
     }
 
     /// <summary>
-    /// Switches the NPC to Talk Mode.
+    /// Talk Mode로 전환
     /// </summary>
     private void SwitchToTalkMode()
     {
         if (CurrentMode != "talkmode")
         {
             CurrentMode = "talkmode";
-            Debug.Log("RhythmManager: Switched to Talk Mode.");
-
-            // Reset inactivity timer
             ResetInactivityTimer();
+            // Talk Mode에서는 AutonomousDelay 필요 없으니 리셋 -> 정지 상태로
+            ResetAutonomousModeDelay();
         }
     }
 
     /// <summary>
-    /// Switches the NPC to Autonomous Mode.
+    /// Autonomous Mode로 전환
     /// </summary>
     public void SwitchToAutonomousMode()
     {
-        if (CurrentMode != "autonomousmode")
+        if (CurrentMode != "automode")
         {
-            CurrentMode = "autonomousmode";
-            Debug.Log("RhythmManager: Switched to Autonomous Mode.");
-
-            // Autonomous Mode transitions are now driven by server responses or proximity
+            CurrentMode = "automode";
+            ResetInactivityTimer();
+            ResetAutonomousModeDelay(); // 모드 변경 후 autonomous mode delay 재시작
         }
     }
 
     /// <summary>
-    /// Resets the inactivity timer to maintain talk mode.
+    /// Inactivity Timer 리셋
     /// </summary>
     public void ResetInactivityTimer()
     {
         if (inactivityCoroutine != null)
-        {
             StopCoroutine(inactivityCoroutine);
-            Debug.Log("RhythmManager: Stopped existing inactivity timer coroutine.");
-        }
+
         inactivityCoroutine = StartCoroutine(InactivityTimer());
-        Debug.Log("RhythmManager: Started new inactivity timer coroutine.");
     }
 
     /// <summary>
-    /// Coroutine that waits for inactivityTimeout seconds before switching to autonomous mode.
+    /// 일정 시간 대기 후 응답 없으면 Autonomous Mode로 전환
     /// </summary>
-    /// <returns></returns>
     IEnumerator InactivityTimer()
     {
-        Debug.Log($"RhythmManager: Inactivity timer started for {inactivityTimeout} seconds.");
         yield return new WaitForSeconds(inactivityTimeout);
-        Debug.Log("RhythmManager: Inactivity timeout reached. Switching to Autonomous Mode.");
+
+        // 플레이어가 답변 없는 경우 Autonomous Mode로 전환
         SwitchToAutonomousMode();
 
-        // Send empty input to server after switching to Autonomous Mode
         if (!IsCommunicatingWithServer && GameManager.instance != null)
         {
-            Debug.Log("RhythmManager: Sending empty input to server after switching to Autonomous Mode.");
-            GameManager.instance.SendEmptyInput(); // This sends empty input
-        }
-        else
-        {
-            Debug.LogWarning("RhythmManager: Cannot send empty input to server. Either already communicating or GameManager.instance is null.");
+            GameManager.instance.SendEmptyInput("Player don't answer to npc talk.");
+            IsCommunicatingWithServer = true;
+            ResetInactivityTimer();
+            // 모드 전환했으니 autonomous delay도 리셋하여 재시작
+            ResetAutonomousModeDelay();
         }
     }
 
     /// <summary>
-    /// Resets the mode to Talk Mode and stops autonomous behavior.
+    /// 플레이어가 대화를 시작할 때 호출
+    /// </summary>
+    public void StartConversation()
+    {
+        if (CurrentMode != "automode")
+        {
+            SwitchToTalkMode();
+            ResetInactivityTimer();
+            // Talk Mode 진입 시 autonomous delay는 중단
+            ResetAutonomousModeDelay();
+        }
+    }
+
+    /// <summary>
+    /// Talk Mode로 리셋
     /// </summary>
     public void ResetToTalkMode()
     {
-        if (CurrentMode != "talkmode")
-        {
-            SwitchToTalkMode();
-        }
-
-        // Reset inactivity timer
+        SwitchToTalkMode();
         ResetInactivityTimer();
-        Debug.Log("RhythmManager: Reset inactivity timer during ResetToTalkMode.");
+        // Talk Mode 유지 시 autonomous delay는 다시 중단
+        ResetAutonomousModeDelay();
     }
 }
