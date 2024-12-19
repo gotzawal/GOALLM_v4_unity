@@ -37,8 +37,9 @@ public class GameManager : MonoBehaviour
         public string userInput;
         public WorldStatus world_status; // WorldStatus 필드 추가
         public string npc_mode; // Mode field
+        public string request_situation;
 
-        public ServerRequest(string clientId, string apiKey, NPCStatus status, string input, WorldStatus worldStatus, string mode)
+        public ServerRequest(string clientId, string apiKey, NPCStatus status, string input, WorldStatus worldStatus, string mode, string situation)
         {
             this.client_id = clientId;
             this.api_key = apiKey;
@@ -46,6 +47,7 @@ public class GameManager : MonoBehaviour
             this.userInput = input;
             this.world_status = worldStatus;
             this.npc_mode = mode;
+            this.request_situation = situation;
         }
     }
 
@@ -231,11 +233,8 @@ public class GameManager : MonoBehaviour
                 }
 
                 // Send input to the server
-                if (!rhythmManager.IsCommunicatingWithServer)
-                {
-                    Debug.Log("GameManager: Starting server communication with user input.");
-                    StartCoroutine(CommunicateWithServer(userInput));
-                }
+                Debug.Log("GameManager: Starting server communication with user input.");
+                StartCoroutine(CommunicateWithServer(userInput, "User talk to NPC"));
 
                 // Reset inactivity timer in RhythmManager to maintain talk mode
                 rhythmManager.ResetToTalkMode();
@@ -259,7 +258,7 @@ public class GameManager : MonoBehaviour
     /// <summary>
     /// Triggers Talk Mode by proximity and sends an empty input to the server.
     /// </summary>
-    public void SendEmptyInput()
+    public void SendEmptyInput(string situation)
     {
         Debug.Log("GameManager: Send Empty Input to Server");
 
@@ -267,7 +266,7 @@ public class GameManager : MonoBehaviour
         if (!rhythmManager.IsCommunicatingWithServer)
         {
             Debug.Log("GameManager: Starting server communication with empty input.");
-            StartCoroutine(CommunicateWithServer(""));
+            StartCoroutine(CommunicateWithServer("", situation));
         }
         else
         {
@@ -280,7 +279,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     /// <param name="userInput">The user input to send to the server.</param>
     /// <returns></returns>
-    IEnumerator CommunicateWithServer(string userInput)
+    IEnumerator CommunicateWithServer(string userInput, string situation)
     {
         Debug.Log("GameManager: CommunicateWithServer called with input: \"" + userInput + "\"");
 
@@ -290,7 +289,7 @@ public class GameManager : MonoBehaviour
         WorldStatus currentWorldStatus = goapManager.CurrentWorldStatus;
 
         // 서버 요청 객체 생성 (월드 상태 포함)
-        ServerRequest request = new ServerRequest(clientId, apiKey, goapManager.CurrentNPCStatus, userInput, currentWorldStatus, rhythmManager.CurrentMode);
+        ServerRequest request = new ServerRequest(clientId, apiKey, goapManager.CurrentNPCStatus, userInput, currentWorldStatus, rhythmManager.CurrentMode, situation);
 
         Debug.Log("GameManager: Serialized ServerRequest: " + JsonConvert.SerializeObject(request));
 
